@@ -20,7 +20,7 @@ namespace ProgressTrackerSubjectService.Controllers
         }
 
         [HttpGet("view/{id}")]
-        // [Authorize]
+        [Authorize]
         public async Task<IActionResult> ViewSubject(int id)
         {
             var subject = await _context.Subjects.FindAsync(id);
@@ -33,7 +33,7 @@ namespace ProgressTrackerSubjectService.Controllers
         }
 
         [HttpPost("create")]
-        // [Authorize]
+        [Authorize]
         public async Task<IActionResult> Create([FromBody] SubjectCreateModel model)
         {
             if (!ModelState.IsValid)
@@ -58,7 +58,7 @@ namespace ProgressTrackerSubjectService.Controllers
         }
 
         [HttpGet("edit/{id}")]
-        // [Authorize]
+        [Authorize]
         public async Task<IActionResult> GetEditUser(int id)
         {
             var subject = await _context.Subjects.FindAsync(id);
@@ -80,7 +80,7 @@ namespace ProgressTrackerSubjectService.Controllers
         }
 
         [HttpPut("edit")]
-        // [Authorize]
+        [Authorize]
         public async Task<IActionResult> EditSubject([FromBody] SubjectEditModel model)
         {
             if (!ModelState.IsValid)
