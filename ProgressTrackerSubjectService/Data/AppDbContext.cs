@@ -1,13 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Reflection.Emit;
-using ProgressTrackerUserService.Models;
+using ProgressTrackerSubjectService.Models;
 
-namespace ProgressTrackerUserService.Data
+namespace ProgressTrackerSubjectService.Data
 {
     public class AppDbContext : DbContext
     {
-        public DbSet<UserModel> Users { get; set; }
+        public DbSet<SubjectModel> Subjects { get; set; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
@@ -17,8 +15,8 @@ namespace ProgressTrackerUserService.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<UserModel>()
-                .HasIndex(u => u.Email)
+            modelBuilder.Entity<SubjectModel>()
+                .HasIndex(u => u.Name)
                 .IsUnique();
         }
     }

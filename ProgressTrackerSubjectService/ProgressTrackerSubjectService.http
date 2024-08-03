@@ -1,6 +1,6 @@
 @ProgressTrackerSubjectService_HostAddress = http://localhost:5106
 
-GET {{ProgressTrackerSubjectService_HostAddress}}/weatherforecast/
+GET {{ProgressTrackerSubjectService_HostAddress}}/subjectservice/
 Accept: application/json
 
 ###

@@ -2,8 +2,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ProgressTrackerSubjectService.ViewModels;
 
-public class SubjectCreateModel
+public class SubjectEditModel
 {
+    [Key]
+    [Required]
+    public int Id { get; set; }
+    
     [StringLength(60, MinimumLength = 3)]
     [Required]
     public string Name { get; set; } = null!;

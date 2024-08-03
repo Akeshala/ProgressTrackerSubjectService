@@ -1,16 +1,10 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using ProgressTrackerSubjectService.Data;
-using ProgressTrackerUserService.Data;
-using ProgressTrackerUserService.Models;
-using ProgressTrackerUserService.Utils;
-using ProgressTrackerUserService.ViewModels;
+using ProgressTrackerSubjectService.Models;
+using ProgressTrackerSubjectService.ViewModels;
 
-namespace ProgressTrackerUserService.Controllers
+namespace ProgressTrackerSubjectService.Controllers
 {
     [ApiController]
     [Route("[controller]")]
@@ -26,10 +20,10 @@ namespace ProgressTrackerUserService.Controllers
         }
 
         [HttpGet("view/{id}")]
-        [Authorize]  // Requires authentication for this specific action
+        // [Authorize]
         public async Task<IActionResult> ViewSubject(int id)
         {
-            var subject = await _context.Users.FindAsync(id);
+            var subject = await _context.Subjects.FindAsync(id);
             if (subject == null)
             {
                 _logger.LogWarning($"Subject with ID {id} not found.");
@@ -39,7 +33,8 @@ namespace ProgressTrackerUserService.Controllers
         }
 
         [HttpPost("create")]
-        public async Task<IActionResult> Create([FromBody] UserRegisterModel model)
+        // [Authorize]
+        public async Task<IActionResult> Create([FromBody] SubjectCreateModel model)
         {
             if (!ModelState.IsValid)
             {
@@ -47,123 +42,69 @@ namespace ProgressTrackerUserService.Controllers
                 return BadRequest(ModelState);
             }
 
-            if (_context.Users.Any(u => u.Email == model.Email))
+            if (_context.Subjects.Any(u => u.Name == model.Name))
             {
-                _logger.LogWarning($"Email already exists: {model.Email}");
-                return Conflict("Email already exists.");
+                _logger.LogWarning($"Subject already exists: {model.Name}");
+                return Conflict("Subject already exists.");
             }
 
-            var user = new UserModel
-            {
-                FirstName = model.FirstName,
-                LastName = model.LastName,
-                Email = model.Email,
-                PasswordHash = SecurityLib.HashPassword(model.Password),
-                University = model.University,
-                DateCreated = DateTime.UtcNow
-            };
+            var subject = new SubjectModel(model.Name, model.Credits, model.LearningHours);
 
-            await _context.Users.AddAsync(user);
+            await _context.Subjects.AddAsync(subject);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation($"User registered: {user.Email}");
-            return CreatedAtAction(nameof(ViewUser), new { id = user.UserId }, user);
+            _logger.LogInformation($"Subject added: {subject.Name}");
+            return CreatedAtAction(nameof(ViewSubject), new { id = subject.Id }, subject);
         }
 
         [HttpGet("edit/{id}")]
-        [Authorize]  // Requires authentication for this specific action
+        // [Authorize]
         public async Task<IActionResult> GetEditUser(int id)
         {
-            var user = await _context.Users.FindAsync(id);
-            if (user == null)
+            var subject = await _context.Subjects.FindAsync(id);
+            if (subject == null)
             {
-                _logger.LogWarning($"User with ID {id} not found.");
+                _logger.LogWarning($"Subject with ID {id} not found.");
                 return NotFound();
             }
 
-            var userEditModel = new UserEditModel
+            var subjectEditModel = new SubjectEditModel
             {
-                UserId = user.UserId,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Email = user.Email,
-                University = user.University
+                Id = subject.Id,
+                Name = subject.Name,
+                Credits = subject.Credits,
+                LearningHours = subject.LearningHours,
             };
 
-            return Ok(userEditModel);
+            return Ok(subjectEditModel);
         }
 
         [HttpPut("edit")]
-        [Authorize]  // Requires authentication for this specific action
-        public async Task<IActionResult> EditUser([FromBody] UserEditModel model)
+        // [Authorize]
+        public async Task<IActionResult> EditSubject([FromBody] SubjectEditModel model)
         {
             if (!ModelState.IsValid)
             {
-                _logger.LogWarning("Invalid model state for EditUser.");
+                _logger.LogWarning("Invalid model state for EditSubject.");
                 return BadRequest(ModelState);
             }
 
-            var existingUser = await _context.Users.FindAsync(model.UserId);
-            if (existingUser == null)
+            var existingSubject = await _context.Subjects.FindAsync(model.Id);
+            if (existingSubject == null)
             {
-                _logger.LogWarning($"User with ID {model.UserId} not found.");
+                _logger.LogWarning($"Subject with ID {model.Id} not found.");
                 return NotFound();
             }
 
-            existingUser.FirstName = model.FirstName;
-            existingUser.LastName = model.LastName;
-            existingUser.Email = model.Email;
-            existingUser.University = model.University;
+            existingSubject.Name = model.Name;
+            existingSubject.Credits = model.Credits;
+            existingSubject.LearningHours = model.LearningHours;
 
-            if (!string.IsNullOrWhiteSpace(model.Password))
-            {
-                existingUser.PasswordHash = SecurityLib.HashPassword(model.Password);
-            }
-
-            _context.Update(existingUser);
+            _context.Update(existingSubject);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation($"User updated: {existingUser.Email}");
-            return Ok(existingUser);
-        }
-        
-        [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] UserLoginModel model)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var user = await _context.Users.SingleOrDefaultAsync(u => u.Email == model.Email);
-            if (user == null || !SecurityLib.VerifyPassword(model.Password, user.PasswordHash))
-            {
-                return Unauthorized("Invalid email or password.");
-            }
-
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, user.Email),
-                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString())
-            };
-
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
-            var authProperties = new AuthenticationProperties
-            {
-                IsPersistent = model.RememberMe
-            };
-
-            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity), authProperties);
-
-            return Ok(new { message = "Login successful!" });
-        }
-
-        [HttpPost("logout")]
-        public async Task<IActionResult> Logout()
-        {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return Ok(new { message = "Logout successful!" });
+            _logger.LogInformation($"Subject updated: {existingSubject.Name}");
+            return Ok(existingSubject);
         }
     }
 }

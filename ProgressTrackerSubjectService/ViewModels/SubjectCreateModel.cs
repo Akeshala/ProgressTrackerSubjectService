@@ -1,12 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace ProgressTrackerSubjectService.Models;
+namespace ProgressTrackerSubjectService.ViewModels;
 
-public class SubjectEditModel
+public class SubjectCreateModel
 {
-    [Key]
-    public int Id { get; set; }
-    
     [StringLength(60, MinimumLength = 3)]
     [Required]
     public string Name { get; set; } = null!;
@@ -19,11 +16,4 @@ public class SubjectEditModel
     [Range(1, 150)]
     [Required]
     public int LearningHours { get; set; }
-    
-    public SubjectModel(string name, int credits, int learningHours)
-    {
-        Name = name;
-        Credits = credits;
-        LearningHours = learningHours;
-    }
 }
