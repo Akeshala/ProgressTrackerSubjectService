@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ProgressTrackerSubjectService.Data;
 using ProgressTrackerSubjectService.Models;
 using ProgressTrackerSubjectService.ViewModels;
@@ -17,6 +18,19 @@ namespace ProgressTrackerSubjectService.Controllers
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
+        
+        [HttpGet("all")]
+        [Authorize]
+        public async Task<IActionResult> GetAll()
+        {
+            var subjects = await _context.Subjects.ToListAsync();
+            if (subjects.Count == 0)
+            {
+                _logger.LogWarning($"No Subject found.");
+                return NotFound();
+            }
+            return Ok(subjects);
         }
 
         [HttpGet("view/{userid}/{id}")]
@@ -41,7 +55,7 @@ namespace ProgressTrackerSubjectService.Controllers
         
         [HttpGet("all/{userid}")]
         [Authorize]
-        public async Task<IActionResult> GetAll(int userid)
+        public async Task<IActionResult> GetAllForUser(int userid)
         {
             var userSubjects = await _context.UserSubjects.FindAsync(userid);
             if (userSubjects == null)
