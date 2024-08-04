@@ -10,10 +10,9 @@ public class UserSubjectsModel
     [Required]
     public int UserId { get; set; }
     
-    public int SubjectIds { get; set; }
+    public List<int> SubjectIds { get; set; }
     
-    
-    public UserSubjectsModel(int userId, int subjectIds)
+    public UserSubjectsModel(int userId, List<int> subjectIds)
     {
         UserId = userId;
         SubjectIds = subjectIds;

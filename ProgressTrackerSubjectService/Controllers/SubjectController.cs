@@ -19,10 +19,17 @@ namespace ProgressTrackerSubjectService.Controllers
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        [HttpGet("view/{id}")]
+        [HttpGet("view/{userid}/{id}")]
         [Authorize]
-        public async Task<IActionResult> ViewSubject(int id)
+        public async Task<IActionResult> ViewSubject(int userid, int id)
         {
+            var userSubjects = await _context.UserSubjects.FindAsync(userid);
+            if (userSubjects != null && !userSubjects.SubjectIds.Contains(id))
+            {
+                _logger.LogWarning($"Subject with ID {id} not found for {userid}.");
+                return NotFound();
+            }
+            
             var subject = await _context.Subjects.FindAsync(id);
             if (subject == null)
             {
@@ -31,7 +38,30 @@ namespace ProgressTrackerSubjectService.Controllers
             }
             return Ok(new { subject.Id, subject.Name, subject.Credits, subject.LearningHours });
         }
+        
+        [HttpGet("all/{userid}")]
+        [Authorize]
+        public async Task<IActionResult> GetAll(int userid)
+        {
+            var userSubjects = await _context.UserSubjects.FindAsync(userid);
+            if (userSubjects == null)
+            {
+                _logger.LogWarning($"No Subject found for User with ID {userid}.");
+                return NotFound();
+            }
 
+            var subjectIds = userSubjects.SubjectIds;
+            var subjects = _context.Subjects.Where(e => subjectIds.Contains(e.Id)).ToList();
+            if (subjects.Count == 0)
+            {
+                _logger.LogWarning($"No Subject found for User with ID {userid}.");
+                return NotFound();
+            }
+            
+            return Ok(subjects);
+        }
+
+        // use this for internal operations
         [HttpPost("create")]
         [Authorize]
         public async Task<IActionResult> Create([FromBody] SubjectCreateModel model)
@@ -56,7 +86,73 @@ namespace ProgressTrackerSubjectService.Controllers
             _logger.LogInformation($"Subject added: {subject.Name}");
             return CreatedAtAction(nameof(ViewSubject), new { id = subject.Id }, subject);
         }
+        
+        [HttpPost("add")]
+        [Authorize]
+        public async Task<IActionResult> Add([FromBody] SubjectAddModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("Invalid model state for Register.");
+                return BadRequest(ModelState);
+            }
 
+            var userSubjects = await _context.UserSubjects.FindAsync(model.UserId);
+            if (userSubjects == null)
+            {
+                userSubjects = new UserSubjectsModel(model.UserId, [model.SubjectId]);
+                await _context.UserSubjects.AddAsync(userSubjects);
+            }
+            else
+            {
+                var userSubjectIds = userSubjects.SubjectIds;
+                if (!userSubjectIds.Contains(model.SubjectId))
+                {
+                    userSubjectIds.Add(model.SubjectId);
+                    userSubjects.SubjectIds = userSubjectIds;
+                    _context.Update(userSubjects);
+                }
+                else
+                {
+                    _logger.LogInformation($"Subject with the ID: {model.SubjectId} already exists.");
+                }
+            }
+            
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation($"Subject added: {model.SubjectId}");
+            return Ok(userSubjects);
+        }
+        
+        [HttpDelete("remove/{id}/{userid}")]
+        [Authorize]
+        public async Task<IActionResult> Remove(int id, int userid)
+        {
+            var userSubjects = await _context.UserSubjects.FindAsync(userid);
+            if (userSubjects == null)
+            {
+                _logger.LogWarning($"No subjects found for {userid}.");
+                return NotFound();
+            }
+            
+            if (!userSubjects.SubjectIds.Contains(id))
+            {
+                _logger.LogWarning($"Subject with ID {id} not found for User with ID {userid}.");
+                return NotFound();
+            }
+            
+            var userSubjectIds = userSubjects.SubjectIds;
+            userSubjectIds.Remove(id);
+            userSubjects.SubjectIds = userSubjectIds;
+            _context.Update(userSubjects);
+            
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation($"Subject removed: {id}");
+            return Ok(userSubjects);
+        }
+
+        // use this for internal operations
         [HttpGet("edit/{id}")]
         [Authorize]
         public async Task<IActionResult> GetEditUser(int id)
@@ -79,6 +175,7 @@ namespace ProgressTrackerSubjectService.Controllers
             return Ok(subjectEditModel);
         }
 
+        // use this for internal operations
         [HttpPut("edit")]
         [Authorize]
         public async Task<IActionResult> EditSubject([FromBody] SubjectEditModel model)
