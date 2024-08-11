@@ -7,6 +7,7 @@ using ProgressTrackerSubjectService.ViewModels;
 
 namespace ProgressTrackerSubjectService.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class SubjectController : ControllerBase
@@ -21,7 +22,6 @@ namespace ProgressTrackerSubjectService.Controllers
         }
         
         [HttpGet("all")]
-        [Authorize]
         public async Task<IActionResult> GetAll()
         {
             var subjects = await _context.Subjects.ToListAsync();
@@ -34,7 +34,6 @@ namespace ProgressTrackerSubjectService.Controllers
         }
 
         [HttpGet("view/{userid}/{id}")]
-        [Authorize]
         public async Task<IActionResult> ViewSubject(int userid, int id)
         {
             var userSubjects = await _context.UserSubjects.FindAsync(userid);
@@ -54,7 +53,6 @@ namespace ProgressTrackerSubjectService.Controllers
         }
         
         [HttpGet("all/{userid}")]
-        [Authorize]
         public async Task<IActionResult> GetAllForUser(int userid)
         {
             var userSubjects = await _context.UserSubjects.FindAsync(userid);
@@ -77,7 +75,6 @@ namespace ProgressTrackerSubjectService.Controllers
 
         // use this for internal operations
         [HttpPost("create")]
-        [Authorize]
         public async Task<IActionResult> Create([FromBody] SubjectCreateModel model)
         {
             if (!ModelState.IsValid)
@@ -98,11 +95,10 @@ namespace ProgressTrackerSubjectService.Controllers
             await _context.SaveChangesAsync();
 
             _logger.LogInformation($"Subject added: {subject.Name}");
-            return CreatedAtAction(nameof(ViewSubject), new { id = subject.Id }, subject);
+            return Ok(model);
         }
         
         [HttpPost("add")]
-        [Authorize]
         public async Task<IActionResult> Add([FromBody] SubjectAddModel model)
         {
             if (!ModelState.IsValid)
@@ -139,7 +135,6 @@ namespace ProgressTrackerSubjectService.Controllers
         }
         
         [HttpDelete("remove/{id}/{userid}")]
-        [Authorize]
         public async Task<IActionResult> Remove(int id, int userid)
         {
             var userSubjects = await _context.UserSubjects.FindAsync(userid);
@@ -168,7 +163,6 @@ namespace ProgressTrackerSubjectService.Controllers
 
         // use this for internal operations
         [HttpGet("edit/{id}")]
-        [Authorize]
         public async Task<IActionResult> GetEditUser(int id)
         {
             var subject = await _context.Subjects.FindAsync(id);
@@ -191,7 +185,6 @@ namespace ProgressTrackerSubjectService.Controllers
 
         // use this for internal operations
         [HttpPut("edit")]
-        [Authorize]
         public async Task<IActionResult> EditSubject([FromBody] SubjectEditModel model)
         {
             if (!ModelState.IsValid)
